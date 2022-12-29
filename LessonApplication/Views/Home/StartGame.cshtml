@@ -1,0 +1,234 @@
+﻿@model  LessonApplication.Models.Home.GameModel
+
+
+
+
+@section Scripts{
+    <script>
+        // JavaScript-код будем писать здесь
+
+        var canvas = document.getElementById("myCanvas");
+        var ctx = canvas.getContext("2d");
+
+        // Переменные, описывающие платформу
+        var paddleHeight = 20;
+        var paddleWidth = 300;
+        var paddleX = (canvas.width - paddleWidth) / 2;
+        var paddleOffSet = 10;
+        // Переменные для перемещения мяча
+        var x = canvas.width / 2;
+        var y = canvas.height - paddleHeight - paddleOffSet;
+        var dx = 3;
+        var dy = -3;
+        var radius = 10;
+        // Переменные для передвижения платформы
+        var rightPressed = false;
+        var leftPressed = false;
+        // Переменные, описывающие кирпичики
+        var brickRowCount = 3;
+        var brickColumnCount = 13;
+        var brickOffsetTop = 30;
+        var brickOffsetLeft = 100;
+        var brickPadding = 5;
+        var brickWidth =
+            (canvas.width - 2 * brickOffsetLeft - brickColumnCount * brickPadding) /
+            brickColumnCount;
+        var brickHeight = 40;
+        var brickStrength = 5;
+        var bricksColor = ["blue", "#00e6ff", "green", "#ffff00", "red"];
+        // Массив кирпичей
+        // i - column; j - row
+        var bricks = [];
+        for (var i = 0; i < brickColumnCount; i++) {
+            bricks[i] = [];
+            for (var j = 0; j < brickRowCount; j++) {
+                bricks[i][j] = {
+                    x: 0,
+                    y: 0,
+                    strength: brickStrength,
+                    color: 0,
+                };
+            }
+        }
+        // Вспомогательные переменные
+        var bricksCount = brickColumnCount * brickRowCount * brickStrength;
+        var Rsin45 = (radius * Math.sqrt(2)) / 2;
+        // Массив для определения пересечения в восьми точках:
+        // Первая на 12 часов, вторая на 1:30, третья на три часа и т.д.
+        var dotsOfCirsle = [];
+        for (var i = 0; i < 8; ++i) {
+            dotsOfCirsle[i] = [0, 0];
+        }
+
+        function newDotsOfCirsle() {
+            dotsOfCirsle[0][0] = x;
+            dotsOfCirsle[0][1] = y + radius;
+            dotsOfCirsle[1][0] = x + Rsin45;
+            dotsOfCirsle[1][1] = y + Rsin45;
+            dotsOfCirsle[2][0] = x + radius;
+            dotsOfCirsle[2][1] = y;
+            dotsOfCirsle[3][0] = x + Rsin45;
+            dotsOfCirsle[3][1] = y - Rsin45;
+            dotsOfCirsle[4][0] = x;
+            dotsOfCirsle[4][1] = y - radius;
+            dotsOfCirsle[5][0] = x - Rsin45;
+            dotsOfCirsle[5][1] = y - Rsin45;
+            dotsOfCirsle[6][0] = x - radius;
+            dotsOfCirsle[6][1] = y;
+            dotsOfCirsle[7][0] = x - Rsin45;
+            dotsOfCirsle[7][1] = y + Rsin45;
+        }
+
+        function collisionDetection() {
+            newDotsOfCirsle();
+            for (var i = 0; i < brickColumnCount; i++) {
+                for (var j = 0; j < brickRowCount; j++) {
+                    var b = bricks[i][j];
+                    if (b.strength == 0) {
+                        continue;
+                    }
+                    // k - точки окружности
+                    for (var k = 0; k < 8; k++) {
+                        if (
+                            dotsOfCirsle[k][0] > b.x &&
+                            dotsOfCirsle[k][0] < b.x + brickWidth &&
+                            dotsOfCirsle[k][1] > b.y &&
+                            dotsOfCirsle[k][1] < b.y + brickHeight
+                        ) {
+                            bricksCount -= 1;
+                            if (k == 6 || k == 2) {
+                                dx = -dx;
+                                b.color += 1;
+                                b.strength -= 1;
+                                return;
+                            } else if (k == 0 || k == 4) {
+                                dy = -dy;
+                                b.color += 1;
+                                b.strength -= 1;
+                                return;
+                            } else {
+                                dy = -dy;
+                                dx = -dx;
+                                b.color += 1;
+                                b.strength -= 1;
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = "white";
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawPaddle() {
+            ctx.beginPath();
+            ctx.roundRect(
+                paddleX,
+                canvas.height - paddleHeight - paddleOffSet,
+                paddleWidth,
+                paddleHeight,
+                10
+            );
+            ctx.fillStyle = "#0095DD";
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawBricks() {
+            for (var i = 0; i < brickColumnCount; i++) {
+                for (var j = 0; j < brickRowCount; j++) {
+                    if (bricks[i][j].strength == 0) {
+                        continue;
+                    }
+                    var brickX = i * (brickWidth + brickPadding) + brickOffsetLeft;
+                    var brickY = j * (brickHeight + brickPadding) + brickOffsetTop;
+                    bricks[i][j].x = brickX;
+                    bricks[i][j].y = brickY;
+                    ctx.beginPath();
+                    ctx.rect(brickX, brickY, brickWidth, brickHeight);
+                    ctx.fillStyle = bricksColor[bricks[i][j].color];
+                    ctx.fill();
+                    ctx.closePath();
+                }
+            }
+        }
+
+        drawBricks();
+        drawPaddle();
+        drawBall();
+        function draw() {
+            // код отрисовки
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPaddle();
+            if (rightPressed && paddleX < canvas.width - paddleWidth) {
+                paddleX += 5;
+            } else if (leftPressed && paddleX > 0) {
+                paddleX -= 5;
+            }
+            drawBall();
+            x += dx;
+            y += dy;
+            if (x > canvas.width - radius || x < radius) {
+                dx = -dx;
+            }
+            if (y + dy < radius) {
+                dy = -dy;
+            } else if (
+                Math.abs(y + radius - (canvas.height - paddleHeight - paddleOffSet)) <
+                dy &&
+                x > paddleX &&
+                x < paddleX + paddleWidth
+            ) {
+                dy = -dy;
+            } else if (y > canvas.height - paddleHeight - paddleOffSet) {
+                if (
+                    Math.abs(x + radius - paddleX) < Math.abs(dx) ||
+                    Math.abs(x - radius - (paddleX + paddleWidth)) < Math.abs(dx)
+                ) {
+                    dx = -dx;
+                    dy = -dy;
+                } else if (y > canvas.height - radius) {
+                    alert("GAME OVER");
+                    document.location.reload();
+                    clearInterval(interval);
+                }
+            }
+            collisionDetection();
+            drawBricks();
+            if (bricksCount == 0) {
+                alert("You win!");
+                document.location.reload();
+                clearInterval(interval);
+            }
+        }
+
+        function keyDownHandler(e) {
+            if (e.keyCode == 39) {
+                rightPressed = true;
+            } else if (e.keyCode == 37) {
+                leftPressed = true;
+            }
+        }
+
+        function keyUpHandler(e) {
+            if (e.keyCode == 39) {
+                rightPressed = false;
+            } else if (e.keyCode == 37) {
+                leftPressed = false;
+            }
+        }
+
+        document.addEventListener("keydown", keyDownHandler, false);
+        document.addEventListener("keyup", keyUpHandler, false);
+
+        var interval = setInterval(draw, 10);
+    </script>
+}
+
